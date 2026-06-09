@@ -1,0 +1,158 @@
+name: notification-service
+
+x-php-cli: &php-cli
+    build:
+        context: .
+        dockerfile: infrastructure/dockerfiles/php/Dockerfile
+        target: basecli
+        args:
+            CUSTOM_UID: ${CUSTOM_UID:-1000}
+            CUSTOM_GID: ${CUSTOM_GID:-1000}
+    restart: always
+    depends_on:
+        postgres:
+            condition: service_healthy
+        redis:
+            condition: service_healthy
+        rabbitmq:
+            condition: service_healthy
+    volumes:
+        - ./:/app
+    networks:
+        - internal
+
+x-php-cli-worker: &php-cli-worker
+    <<: *php-cli
+    depends_on:
+        init:
+            condition: service_completed_successfully
+
+services:
+    init:
+        <<: *php-cli
+        restart: "no"
+        command: >
+            sh -c "
+                echo 'Процесс инициализации проекта..'
+                if [ ! -f .env ]; then
+                    cp .env.example .env
+                fi
+                composer install &&
+                php artisan key:generate &&
+                php artisan migrate
+            "
+
+    php-fpm:
+        build:
+            context: .
+            dockerfile: infrastructure/dockerfiles/php/Dockerfile
+            target: basefpm
+            args:
+                CUSTOM_UID: ${CUSTOM_UID:-1000}
+                CUSTOM_GID: ${CUSTOM_GID:-1000}
+        depends_on:
+            init:
+                condition: service_completed_successfully
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+        restart: always
+        volumes:
+            - ./:/app
+        networks:
+            - internal
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+    php-schedule:
+        <<: *php-cli-worker
+        command: [ "php", "artisan", "schedule:work" ]
+
+    php-queue:
+        <<: *php-cli-worker
+        command: [ "php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600" ]
+        restart: always
+
+    php-rabbit-consumer:
+        <<: *php-cli-worker
+        command: [ "php", "artisan", "queue:work", "rabbitmq", "--queue=notifications", "--sleep=3", "--tries=3" ]
+
+    nginx:
+        image: nginx:1.31.1-alpine3.23
+        volumes:
+            - ./infrastructure/dockerfiles/nginx/templates:/etc/nginx/templates
+            - ./:/app
+        depends_on:
+            - php-fpm
+        environment:
+            - VIRTUAL_HOST=notification-service.localhost
+            - VIRTUAL_PORT=80
+            - VIRTUAL_PROTO=http
+        restart: always
+        networks:
+            - internal
+            - nginx-proxy
+
+    redis:
+        image: redis:7.4-alpine
+        restart: always
+        volumes:
+            - redis-data:/data
+        networks:
+            - internal
+        healthcheck:
+            test: [ "CMD", "redis-cli", "ping" ]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    postgres:
+        image: postgres:18.1-alpine3.23
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        restart: always
+        environment:
+            POSTGRES_DB: main
+            POSTGRES_USER: main
+            POSTGRES_PASSWORD: secret
+        ports:
+            - "5432:5432"
+        networks:
+            - internal
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U main -d main" ]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    rabbitmq:
+        image: rabbitmq:4.3.1-management-alpine
+        restart: always
+        environment:
+            RABBITMQ_DEFAULT_USER: main
+            RABBITMQ_DEFAULT_PASS: secret
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        volumes:
+            - rabbitmq-data:/var/lib/rabbitmq
+        networks:
+            - internal
+        healthcheck:
+            test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    redis-data:
+    postgres-data:
+    rabbitmq-data:
+
+networks:
+    internal:
+    nginx-proxy:
+        external: true
