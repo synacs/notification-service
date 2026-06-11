@@ -1,58 +1,129 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Сервис уведомлений
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Notification Service** - асинхронный микросервис для массовых SMS и Email-рассылок с поддержкой приоритезации трафика.
+Транзакционные уведомления (коды доступа, срочные оповещения) обрабатываются вне очереди, обгоняя маркетинговые
+рассылки. Сервис гарантирует at-least-once доставку с автоматическими retry-механизмами и идемпотентностью запросов на
+уровне бизнес-логики (защита от дублей). Поддерживается детальный трекинг статусов: от "в очереди" до "
+доставлено/отброшено". Проект полностью контейнеризирован и запускается одной командой.
 
-## About Laravel
+## Содержание
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- [Техническое задание](#техническое-задание)
+- [Требования](#требования)
+- [Установка и запуск через Docker Compose](#установка-и-запуск-через-docker-compose)
+- [Как тестировать](#как-тестировать)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Техническое задание
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+<details>
+<summary>Развернуть текст ТЗ</summary>
 
-## Learning Laravel
+### Микросервис уведомлений (Notification Service)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Цель этого задания - проектирование распределенной системы, работа с асинхронными процессами и обеспечение качество кода
+через автоматизированное тестирование.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+#### Функциональные требования (Бизнес-требования)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Массовая рассылка уведомлений:** Система должна предоставлять API для запуска массовой отправки SMS или
+  Email-сообщений. Инициатор запроса передает канал связи, текст сообщения и массив идентификаторов получателей.
 
-## Agentic Development
+- **Приоритезация трафика:** Система должна гарантировать доставку критичных сообщений без задержек. Транзакционные
+  уведомления (коды доступа, срочные изменения маршрутов) должны получать наивысший приоритет и отправляться вне
+  очереди, обгоняя маркетинговые рассылки.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- **Детализация статусов доставки:** Система должна предоставлять API для запроса истории и текущего статуса всех
+  уведомлений конкретного подписчика. Статусы:
+    - в очереди (сообщение принято и ожидает отправки);
+    - отправлено (передано шлюзу/провайдеру);
+    - доставлено (подтверждено провайдером);
+    - отброшено (ошибка доставки, несуществующий номер/email и т.д.).
 
-```bash
-composer require laravel/boost --dev
+#### Нефункциональные требования (Архитектура и качество)
 
-php artisan boost:install
-```
+- **Гарантия доставки сообщений (Reliability):**
+    - Персистентность: Использование брокеров сообщений для хранения очереди.
+    - Модель доставки: Поддержка семантики at-least-once. Реализация exactly-once на уровне бизнес-логики.
+    - Retry-механизмы: Автоматический повтор попыток отправки при временной недоступности шлюзов.
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+- **Дедубликация (Idempotency):** Защита от повторной отправки одного и того же сообщения при дублировании запросов от
+  вызывающего сервиса.
 
-## Contributing
+- **Тестирование:** Интеграционные тесты на основные сценарии. Автоматизированная проверка всей цепочки: от получения
+  сообщения из очереди до корректного изменения статуса в базе данных и вызова нужного провайдера.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Cloud Native и развертывание:**
+    - Упаковка сервиса в Docker-образ.
+    - Запуск одной командой docker-compose up.
 
-## Code of Conduct
+#### Технологический стек
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Язык и фреймворк:** PHP (Laravel).
+- **База данных:** PostgreSQL.
+- **Брокер сообщений:** RabbitMQ.
+- **Кэш / In-memory хранилище:** Redis (для дедубликации и контроля лимитов).
 
-## Security Vulnerabilities
+**Примечание:** для внешних шлюзов используются классы-заглушки (моки), которые имитируют работу реальных провайдеров.
+</details>
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Требования
 
-## License
+- Docker >= 20.10
+- Docker Compose >= 2.0
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Установка и запуск через Docker Compose
+
+1. Запуск проекта:
+
+   Команда склонирует репозиторий и запустит проект.
+   ```bash
+   git clone https://github.com/synacs/notification-service.git \
+   && cd notification-service \
+   && docker compose up -d
+   ```
+   После запуска команды проект будет доступен по ссылке http://notification-service.localhost:19923/
+
+   Примечание:
+
+   Порт `19923` был выбран целенамеренно для тестового задания в качестве потенциально свободного порта, а так же
+   предполагается, что nginx-proxy не установлен.
+2. Остановка:
+   ```bash
+   docker compose down
+   ```
+   Останавливает все запущенные контейнеры проекта.
+
+   ВНИМАНИЕ! Если требуется удалить все networks и volumes, а так же безвозвратно удалить все данные о проекте
+   используйте команду с флагом `-v`:
+    ```bash
+    docker compose down -v
+    ```
+
+## Как тестировать
+
+1. Убедитесь, что контейнеры запущены:
+   ```bash
+   docker compose ps
+   ```
+   Контейнер `init (init-1)` **не** должен быть запущен, т.к. является инициализирующим контейнером, который
+   устанавливает все зависимости composer, выполняет миграции, генерирует ключ и т.д.
+
+2. Проверьте доступность сервиса:
+   ```bash
+   curl http://notification-service.localhost:19923/
+   ```
+   Или перейдите по ссылке http://notification-service.localhost:19923/. Должно быть отображено стандартное Welcome
+   Laravel 13.
+3. Запустите feature-тесты:
+    ```bash
+   docker compose exec php-schedule php artisan test
+    ```
+4. Используйте Postman для тестирования:
+
+   Импортируйте [postman_collection.json](postman_collection.json) в ваш Postman, для проведения ручного тестирования.
+
+   Файл уже содержит тест-кейсы с предустановленными значениями.
+
+## Лицензия
+
+[MIT](LICENSE)
