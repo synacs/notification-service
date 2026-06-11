@@ -114,14 +114,11 @@ services:
             - php-fpm
         environment:
             - VIRTUAL_HOST=notification-service.localhost
-            - VIRTUAL_PORT=80
-            - VIRTUAL_PROTO=http
         ports:
             - "19923:80"
         restart: always
         networks:
             - internal
-            - nginx-proxy
 
     redis:
         image: redis:7.4-alpine
@@ -176,5 +173,3 @@ volumes:
 
 networks:
     internal:
-    nginx-proxy:
-        external: true

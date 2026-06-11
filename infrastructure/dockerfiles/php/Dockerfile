@@ -10,9 +10,10 @@ COPY ./infrastructure/dockerfiles/php/conf.d/docker-php-ext-overrides-fpm.ini /u
 
 RUN addgroup -g ${CUSTOM_UID} www \
     && adduser -u ${CUSTOM_GID} -G www -s /bin/sh -D www \
-    && install-php-extensions xdebug pdo_pgsql redis amqp
+    && install-php-extensions pdo_pgsql redis amqp
 
-COPY ./infrastructure/dockerfiles/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-xdebug.ini
+#RUN install-php-extensions xdebug
+#COPY ./infrastructure/dockerfiles/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-xdebug.ini
 
 WORKDIR /app
 
@@ -33,9 +34,10 @@ COPY ./infrastructure/dockerfiles/php/conf.d/docker-php-ext-overrides-cli.ini /u
 
 RUN addgroup -g ${CUSTOM_UID} www \
     && adduser -u ${CUSTOM_GID} -G www -s /bin/sh -D www \
-    && install-php-extensions xdebug pdo_pgsql redis amqp sockets
+    && install-php-extensions pdo_pgsql redis amqp sockets
 
-COPY ./infrastructure/dockerfiles/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-xdebug.ini
+#RUN install-php-extensions xdebug
+#COPY ./infrastructure/dockerfiles/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-xdebug.ini
 
 WORKDIR /app
 
