@@ -1,0 +1,806 @@
+{
+    "info": {
+        "_postman_id": "4ec50dbd-edd0-41cb-9656-14d9d71e1d94",
+        "name": "Notification Service API",
+        "description": "Микросервис уведомлений - массовая отправка SMS/Email с приоритетами и идемпотентностью",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "27157652"
+    },
+    "item": [
+        {
+            "name": "1. Отправка уведомлений",
+            "item": [
+                {
+                    "name": "Email рассылка (приоритет 5)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "",
+                                    "pm.test(\"Status 201\", function() {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.test(\"Has batch_id\", function() {",
+                                    "    pm.expect(jsonData).to.have.property('batch_id');",
+                                    "});",
+                                    "",
+                                    "if (jsonData.batch_id) {",
+                                    "    pm.collectionVariables.set('BATCH_ID', jsonData.batch_id);",
+                                    "    pm.collectionVariables.set('LAST_BATCH_ID', jsonData.batch_id);",
+                                    "    console.log('Batch ID saved:', jsonData.batch_id);",
+                                    "    console.log('Now execute \"Batch Details\" request');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [\n    \"user1@example.com\",\n    \"user2@example.com\",\n    \"user3@example.com\"\n  ],\n  \"message\": \"Welcome to our service! Your account has been created.\",\n  \"priority\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "SMS рассылка (высокий приоритет 9)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "",
+                                    "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                                    "pm.test(\"Has batch_id\", () => jsonData.batch_id);",
+                                    "",
+                                    "if (jsonData.batch_id) {",
+                                    "    pm.collectionVariables.set('BATCH_ID', jsonData.batch_id);",
+                                    "    console.log('SMS Batch ID:', jsonData.batch_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"sms\",\n  \"recipients\": [\n    \"+79991234567\",\n    \"+79997654321\"\n  ],\n  \"message\": \"URGENT: Your verification code is 123456\",\n  \"priority\": 9\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Маркетинговая рассылка (низкий приоритет 1)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "",
+                                    "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                                    "pm.test(\"Has batch_id\", () => jsonData.batch_id);",
+                                    "",
+                                    "if (jsonData.batch_id) {",
+                                    "    pm.collectionVariables.set('LOW_PRIORITY_BATCH', jsonData.batch_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [\n    \"marketing1@example.com\",\n    \"marketing2@example.com\"\n  ],\n  \"message\": \"Special offer: 50 percent discount on all products!\",\n  \"priority\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Критическое уведомление (макс приоритет 10)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                                    "if (jsonData.batch_id) {",
+                                    "    pm.collectionVariables.set('CRITICAL_BATCH_ID', jsonData.batch_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"sms\",\n  \"recipients\": [\"+79990000001\"],\n  \"message\": \"SYSTEM ALERT: Immediate action required!\",\n  \"priority\": 10\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2. Тест идемпотентности",
+            "item": [
+                {
+                    "name": "Первый запрос (создание)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                                    "if (jsonData.batch_id) {",
+                                    "    pm.collectionVariables.set('IDEMPOTENT_BATCH_ID', jsonData.batch_id);",
+                                    "    console.log('First batch created:', jsonData.batch_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "my-unique-key-12345"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [\"idempotent@example.com\"],\n  \"message\": \"Idempotency test message\",\n  \"priority\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Второй запрос (тот же ключ - должен вернуть тот же batch_id)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "const firstBatchId = pm.collectionVariables.get('IDEMPOTENT_BATCH_ID');",
+                                    "",
+                                    "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                                    "pm.test(\"Batch ID matches first request\", () => {",
+                                    "    pm.expect(jsonData.batch_id).to.equal(firstBatchId);",
+                                    "});",
+                                    "",
+                                    "console.log('Idempotency works! Both requests returned:', jsonData.batch_id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "my-unique-key-12345"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [\"idempotent@example.com\"],\n  \"message\": \"Idempotency test message\",\n  \"priority\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Третий запрос (другой ключ - должен создать новый batch)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "const firstBatchId = pm.collectionVariables.get('IDEMPOTENT_BATCH_ID');",
+                                    "",
+                                    "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                                    "pm.test(\"Batch ID is different\", () => {",
+                                    "    pm.expect(jsonData.batch_id).to.not.equal(firstBatchId);",
+                                    "});",
+                                    "",
+                                    "console.log('New batch created with different key:', jsonData.batch_id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "different-unique-key-67890"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [\"idempotent2@example.com\"],\n  \"message\": \"Different idempotency test\",\n  \"priority\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "3. Получение информации",
+            "item": [
+                {
+                    "name": "Детали batch по ID",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const batchId = pm.collectionVariables.get('BATCH_ID');",
+                                    "if (!batchId) {",
+                                    "    console.warn('Warning: No BATCH_ID set. Send a notification first.');",
+                                    "} else {",
+                                    "    console.log('Fetching batch:', batchId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "",
+                                    "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"Has batch_id\", () => jsonData.batch_id);",
+                                    "pm.test(\"Has statistics\", () => {",
+                                    "    pm.expect(jsonData).to.have.property('total_count');",
+                                    "    pm.expect(jsonData).to.have.property('sent_count');",
+                                    "    pm.expect(jsonData).to.have.property('failed_count');",
+                                    "});",
+                                    "",
+                                    "console.log('Batch statistics:', {",
+                                    "    total: jsonData.total_count,",
+                                    "    sent: jsonData.sent_count,",
+                                    "    failed: jsonData.failed_count,",
+                                    "    processing: jsonData.processing_count",
+                                    "});",
+                                    "",
+                                    "if (jsonData.data && jsonData.data.length > 0) {",
+                                    "    pm.collectionVariables.set('NOTIFICATION_ID', jsonData.data[0].id);",
+                                    "    console.log('Saved notification_id:', jsonData.data[0].id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/batches/{{BATCH_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "batches",
+                                "{{BATCH_ID}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Детали конкретного уведомления",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "",
+                                    "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"Has id\", () => jsonData.id);",
+                                    "pm.test(\"Has status\", () => jsonData.status);",
+                                    "",
+                                    "console.log('Notification ' + jsonData.id + ': ' + jsonData.status);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/{{NOTIFICATION_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "{{NOTIFICATION_ID}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "История по email контакту",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "",
+                                    "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"Has data\", () => jsonData.data);",
+                                    "pm.test(\"Has pagination\", () => jsonData.pagination);",
+                                    "",
+                                    "console.log('Notifications found: ' + (jsonData.data ? jsonData.data.length : 0));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/history/user1@example.com",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "history",
+                                "user1@example.com"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "История по телефону",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonData = pm.response.json();",
+                                    "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                                    "console.log('SMS history count: ' + (jsonData.data ? jsonData.data.length : 0));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/history/+79991234567",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "history",
+                                "+79991234567"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "4. Негативные сценарии",
+            "item": [
+                {
+                    "name": "Пустой список получателей (ошибка валидации)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 422\", () => pm.response.to.have.status(422));",
+                                    "console.log('Validation works: empty recipients rejected');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [],\n  \"message\": \"This should fail\",\n  \"priority\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Невалидный канал",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 422\", () => pm.response.to.have.status(422));",
+                                    "console.log('Validation works: invalid channel rejected');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"telegram\",\n  \"recipients\": [\"user@example.com\"],\n  \"message\": \"Test\",\n  \"priority\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Слишком много получателей (max 1000)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": []\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Отсутствует message (ошибка валидации)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 422\", () => pm.response.to.have.status(422));",
+                                    "console.log('Validation works: message required');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{$randomUUID}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"channel\": \"email\",\n  \"recipients\": [\"test@example.com\"]\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/notifications/bulk",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "bulk"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "5. Вспомогательные запросы",
+            "item": [
+                {
+                    "name": "Сброс всех переменных",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.collectionVariables.clear();",
+                                    "console.log('All collection variables have been cleared');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "BASE_URL",
+            "value": "http://notification-service.localhost:19923",
+            "type": "string"
+        },
+        {
+            "key": "BATCH_ID",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "NOTIFICATION_ID",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "LAST_BATCH_ID",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "LOW_PRIORITY_BATCH",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "CRITICAL_BATCH_ID",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "IDEMPOTENT_BATCH_ID",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
+
