@@ -33,7 +33,7 @@ return [
 
         'rabbitmq' => [
             'driver' => 'rabbitmq',
-            'queue' => env('RABBITMQ_QUEUE', 'default'),
+            'queue' => env('RABBITMQ_QUEUE', 'notifications.normal'),
             'hosts' => [
                 [
                     'host' => env('RABBITMQ_HOST', '127.0.0.1'),
@@ -41,6 +41,21 @@ return [
                     'user' => env('RABBITMQ_USER', 'guest'),
                     'password' => env('RABBITMQ_PASSWORD', 'guest'),
                     'vhost' => env('RABBITMQ_VHOST', '/'),
+                ],
+            ],
+            'options' => [
+                'ssl_options' => [],
+                'queue' => [
+                    'job_class_resolver' => function($queue, $body) {
+                        $data = json_decode($body, true);
+                        $jobClass = $data['data']['commandName'] ?? \App\Jobs\SendNotificationJob::class;
+                        return $jobClass;
+                    },
+                ],
+                'exchange' => [
+                    'name' => 'notification.exchange',
+                    'type' => 'direct',
+                    'durable' => true,
                 ],
             ],
             'worker' => env('RABBITMQ_WORKER', 'default'),
