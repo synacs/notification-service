@@ -1,9 +1,15 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "synacs/notification-service",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Тестовое задание",
     "keywords": ["laravel", "framework"],
+    "authors": [
+        {
+            "name": "Леонид Горшков",
+            "email": "synacs@yandex.ru"
+        }
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
